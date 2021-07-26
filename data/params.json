@@ -1,0 +1,48 @@
+{
+	"line":[
+		{
+		"id": 1,
+		"type": "file",
+		"fname": "sample-3km.data"
+		}
+	],
+	"speedtraction":[
+		{
+		"id": 1,
+		"name": "Speed-tration Test data",
+		"labels":["speed","traction"],
+		"units":["km/s","kgf"],
+		"data":[
+			[0,348880],
+			[30,348880],
+			[35,325360],
+			[40,299880],
+			[50,239120],
+			[60,192080],
+			[67,162680],
+			[70,150920],
+			[75,141120],
+			[80,123480],
+			[90,94080],
+			[100,64680]
+		]
+		}
+	],
+	"train":[
+		{
+		"id": 1,
+		"name": "Default train",
+		"maxspeed":70,
+		"jerk":0.6,
+		"length":200,
+		"WM": 205,
+		"WT": 261,
+		"nCars": 10,
+		"sptrindex":1,
+		"resistance": {
+			"model": "JNR_EMU",
+			"params": [1.32, 0.0164, 0.028, 0.0078]
+			}
+		}
+	]
+}

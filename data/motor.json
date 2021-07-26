@@ -1,0 +1,68 @@
+{
+	"line":[
+		{
+		"id": 1,
+		"type": "file",
+		"fname": "sample.data"
+		}
+	],
+	"motor":[
+		{
+		"id": 1,
+		"Power": 182,
+		"Volt": 1100,
+		"Pole": 4,
+		"efficiency1": 0.95,
+		"efficiency2": 0.90,
+		"freq1": 50,
+		"freq2": 110,
+		"fslip1": 2.0,
+		"fslip2": 6.4,
+		"maxspeed": 150,
+		"diameter": 820,
+		"gear": 7.07
+		}
+	],
+	"speedtraction":[
+		{
+		"id": 1,
+		"name": "Speed-tration Test data",
+		"labels":["speed","traction"],
+		"units":["km/s","kgf"],
+		"data":[
+			[0,348880],
+			[30,348880],
+			[35,325360],
+			[40,299880],
+			[50,239120],
+			[60,192080],
+			[67,162680],
+			[70,150920],
+			[75,141120],
+			[80,123480],
+			[90,94080],
+			[100,64680]
+		]
+		}
+	],
+	"train":[
+		{
+		"id": 1,
+		"name": "Default train",
+		"maxspeed":70,
+		"jerk":0.6,
+		"length":200,
+		"WM": 205,
+		"WT": 261,
+		"nCars": 10,
+		"nTractions": 16,
+		"traction": "motor",
+		"motorindex": 1,
+		"sptrindex":1,
+		"resistance": {
+			"model": "JNR_EMU",
+			"params": [1.32, 0.0164, 0.028, 0.0078]
+			}
+		}
+	]
+}

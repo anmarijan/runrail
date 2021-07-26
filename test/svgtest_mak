@@ -1,0 +1,15 @@
+CC = C:/msys64/mingw32/bin/g++
+
+OBJS = svgtest.o ../src/SVGConv.o ../src/RailLine.o
+PROGRAM = svgtest.exe
+
+CFLAGS  = -std=c++14 -Wall -I../src
+LFLAGS  = -std=c++14 -static -Wall
+
+.cpp.o:
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(PROGRAM) : $(OBJS)
+	$(CC)  $(OBJS) -o $(PROGRAM) $(LFLAGS) 
+
+$(OBJS) : 

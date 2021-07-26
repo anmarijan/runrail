@@ -1,0 +1,522 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2021-07-26 Mon 14:11 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Parameters of Runrail</title>
+<meta name="generator" content="Org mode" />
+</head>
+<body>
+<div id="content">
+<h1 class="title">Parameters of Runrail</h1>
+<div id="table-of-contents">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents">
+<ul>
+<li><a href="#orgd6cd0dd">1. line</a>
+<ul>
+<li><a href="#orga1c2ab0">1.1. Summary</a></li>
+</ul>
+</li>
+<li><a href="#orgf82fdc4">2. speedtraction</a>
+<ul>
+<li><a href="#org8554605">2.1. Summary</a></li>
+<li><a href="#org566eeaa">2.2. Remarks</a>
+<ul>
+<li><a href="#orgb594def">2.2.1. id</a></li>
+<li><a href="#org3abb41f">2.2.2. units</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#org92de6ef">3. train</a>
+<ul>
+<li><a href="#orgf46df41">3.1. Summary</a></li>
+<li><a href="#org7838f5e">3.2. Remarks</a>
+<ul>
+<li><a href="#org3ee2b30">3.2.1. traction</a></li>
+<li><a href="#org2dc5e57">3.2.2. resistance/model</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#org7177dae">4. Motor</a>
+<ul>
+<li><a href="#org1dc6b37">4.1. Summary</a></li>
+<li><a href="#org93cead9">4.2. Remarks</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-orgd6cd0dd" class="outline-2">
+<h2 id="orgd6cd0dd"><span class="section-number-2">1</span> line</h2>
+<div class="outline-text-2" id="text-1">
+</div>
+<div id="outline-container-orga1c2ab0" class="outline-3">
+<h3 id="orga1c2ab0"><span class="section-number-3">1.1</span> Summary</h3>
+<div class="outline-text-3" id="text-1-1">
+<ul class="org-ul">
+<li>id: Unique numnber</li>
+<li>type: "file" only in this version</li>
+<li>fname: File name of the line data</li>
+</ul>
+</div>
+</div>
+</div>
+
+<div id="outline-container-orgf82fdc4" class="outline-2">
+<h2 id="orgf82fdc4"><span class="section-number-2">2</span> speedtraction</h2>
+<div class="outline-text-2" id="text-2">
+</div>
+<div id="outline-container-org8554605" class="outline-3">
+<h3 id="org8554605"><span class="section-number-3">2.1</span> Summary</h3>
+<div class="outline-text-3" id="text-2-1">
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="org-left" />
+
+<col  class="org-left" />
+
+<col  class="org-left" />
+
+<col  class="org-left" />
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-left">obejct name</th>
+<th scope="col" class="org-left">type</th>
+<th scope="col" class="org-left">unit</th>
+<th scope="col" class="org-left">description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-left">id</td>
+<td class="org-left">INT</td>
+<td class="org-left">-</td>
+<td class="org-left">Unique Number</td>
+</tr>
+
+<tr>
+<td class="org-left">name</td>
+<td class="org-left">STRING</td>
+<td class="org-left">-</td>
+<td class="org-left">Name</td>
+</tr>
+
+<tr>
+<td class="org-left">labels</td>
+<td class="org-left">ARRAY</td>
+<td class="org-left">-</td>
+<td class="org-left">Label of x-axis and y-axis</td>
+</tr>
+
+<tr>
+<td class="org-left">units</td>
+<td class="org-left">ARRAY</td>
+<td class="org-left">-</td>
+<td class="org-left">Unit of x-axis and y-axis</td>
+</tr>
+
+<tr>
+<td class="org-left">data</td>
+<td class="org-left">ARRAY</td>
+<td class="org-left">-</td>
+<td class="org-left">Array of speed-traction pair</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+
+<div id="outline-container-org566eeaa" class="outline-3">
+<h3 id="org566eeaa"><span class="section-number-3">2.2</span> Remarks</h3>
+<div class="outline-text-3" id="text-2-2">
+</div>
+<div id="outline-container-orgb594def" class="outline-4">
+<h4 id="orgb594def"><span class="section-number-4">2.2.1</span> id</h4>
+<div class="outline-text-4" id="text-2-2-1">
+<p>
+This is refered from train data as "sptrindex".
+</p>
+</div>
+</div>
+
+<div id="outline-container-org3abb41f" class="outline-4">
+<h4 id="org3abb41f"><span class="section-number-4">2.2.2</span> units</h4>
+<div class="outline-text-4" id="text-2-2-2">
+<p>
+The unit of speed and traction power. 
+</p>
+<ul class="org-ul">
+<li>speed: Not used in this version</li>
+<li>traction power: "kgf" and "N"</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org92de6ef" class="outline-2">
+<h2 id="org92de6ef"><span class="section-number-2">3</span> train</h2>
+<div class="outline-text-2" id="text-3">
+</div>
+<div id="outline-container-orgf46df41" class="outline-3">
+<h3 id="orgf46df41"><span class="section-number-3">3.1</span> Summary</h3>
+<div class="outline-text-3" id="text-3-1">
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="org-left" />
+
+<col  class="org-left" />
+
+<col  class="org-left" />
+
+<col  class="org-left" />
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-left">obejct name</th>
+<th scope="col" class="org-left">type</th>
+<th scope="col" class="org-left">unit</th>
+<th scope="col" class="org-left">description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-left">id</td>
+<td class="org-left">INT</td>
+<td class="org-left">-</td>
+<td class="org-left">Unique Number</td>
+</tr>
+
+<tr>
+<td class="org-left">name</td>
+<td class="org-left">STRING</td>
+<td class="org-left">-</td>
+<td class="org-left">Name</td>
+</tr>
+
+<tr>
+<td class="org-left">maxspeed</td>
+<td class="org-left">REAL</td>
+<td class="org-left">km/h</td>
+<td class="org-left">Maximum speed</td>
+</tr>
+
+<tr>
+<td class="org-left">jerk</td>
+<td class="org-left">REAL</td>
+<td class="org-left">m/s<sup>3</sup></td>
+<td class="org-left">Jerk(not used)</td>
+</tr>
+
+<tr>
+<td class="org-left">length</td>
+<td class="org-left">REAL</td>
+<td class="org-left">m</td>
+<td class="org-left">Length</td>
+</tr>
+
+<tr>
+<td class="org-left">WT</td>
+<td class="org-left">REAL</td>
+<td class="org-left">ton</td>
+<td class="org-left">Total weight of trailer cars</td>
+</tr>
+
+<tr>
+<td class="org-left">WM</td>
+<td class="org-left">REAL</td>
+<td class="org-left">ton</td>
+<td class="org-left">Total weight of motor cars</td>
+</tr>
+
+<tr>
+<td class="org-left">nCars</td>
+<td class="org-left">INT</td>
+<td class="org-left">-</td>
+<td class="org-left">The number of cars per train</td>
+</tr>
+
+<tr>
+<td class="org-left">traction</td>
+<td class="org-left">STRING</td>
+<td class="org-left">-</td>
+<td class="org-left">Traction data type</td>
+</tr>
+
+<tr>
+<td class="org-left">motorindex</td>
+<td class="org-left">INT</td>
+<td class="org-left">-</td>
+<td class="org-left">Index of the motor</td>
+</tr>
+
+<tr>
+<td class="org-left">sptrindex</td>
+<td class="org-left">INT</td>
+<td class="org-left">-</td>
+<td class="org-left">Index of the speed-traction relationship</td>
+</tr>
+
+<tr>
+<td class="org-left">lineindex</td>
+<td class="org-left">INT</td>
+<td class="org-left">-</td>
+<td class="org-left">Index of the line</td>
+</tr>
+
+<tr>
+<td class="org-left">nTractions</td>
+<td class="org-left">INT</td>
+<td class="org-left">-</td>
+<td class="org-left">The number of traction units</td>
+</tr>
+
+<tr>
+<td class="org-left">resistance</td>
+<td class="org-left">OBJECT</td>
+<td class="org-left">-</td>
+<td class="org-left">Information of rolling resistance</td>
+</tr>
+
+<tr>
+<td class="org-left">model</td>
+<td class="org-left">STRING</td>
+<td class="org-left">-</td>
+<td class="org-left">Model name of the rolling resistance</td>
+</tr>
+
+<tr>
+<td class="org-left">params</td>
+<td class="org-left">ARRAY</td>
+<td class="org-left">-</td>
+<td class="org-left">Parameters of the model above</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+
+<div id="outline-container-org7838f5e" class="outline-3">
+<h3 id="org7838f5e"><span class="section-number-3">3.2</span> Remarks</h3>
+<div class="outline-text-3" id="text-3-2">
+</div>
+<div id="outline-container-org3ee2b30" class="outline-4">
+<h4 id="org3ee2b30"><span class="section-number-4">3.2.1</span> traction</h4>
+<div class="outline-text-4" id="text-3-2-1">
+<p>
+If traction is "motor", the motor model is used.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org2dc5e57" class="outline-4">
+<h4 id="org2dc5e57"><span class="section-number-4">3.2.2</span> resistance/model</h4>
+<div class="outline-text-4" id="text-3-2-2">
+<p>
+In the table, "units" means those of variables such as speed, weight, and output value.
+</p>
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="org-left" />
+
+<col  class="org-left" />
+
+<col  class="org-right" />
+
+<col  class="org-left" />
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-left">Name</th>
+<th scope="col" class="org-left">units</th>
+<th scope="col" class="org-right">No. of parameters</th>
+<th scope="col" class="org-left">description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-left">None</td>
+<td class="org-left">-</td>
+<td class="org-right">0</td>
+<td class="org-left">Rolling resistance is 0. Stating resistance is calculated.</td>
+</tr>
+
+<tr>
+<td class="org-left">Quadratic</td>
+<td class="org-left">km/h, -, N</td>
+<td class="org-right">3</td>
+<td class="org-left">T=a+b*v+c*v<sup>2</sup></td>
+</tr>
+
+<tr>
+<td class="org-left">JNR_EMU_MT</td>
+<td class="org-left">km/h, ton, kgf</td>
+<td class="org-right">6</td>
+<td class="org-left">A popular method in Japan. Different parameters for motor cars and trailer cars</td>
+</tr>
+
+<tr>
+<td class="org-left">JNR_EMU</td>
+<td class="org-left">km/h, ton, kgf</td>
+<td class="org-right">4</td>
+<td class="org-left">A popular method in Japan.</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org7177dae" class="outline-2">
+<h2 id="org7177dae"><span class="section-number-2">4</span> Motor</h2>
+<div class="outline-text-2" id="text-4">
+</div>
+<div id="outline-container-org1dc6b37" class="outline-3">
+<h3 id="org1dc6b37"><span class="section-number-3">4.1</span> Summary</h3>
+<div class="outline-text-3" id="text-4-1">
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+
+<colgroup>
+<col  class="org-left" />
+
+<col  class="org-left" />
+
+<col  class="org-left" />
+
+<col  class="org-left" />
+</colgroup>
+<thead>
+<tr>
+<th scope="col" class="org-left">object name</th>
+<th scope="col" class="org-left">type</th>
+<th scope="col" class="org-left">unit</th>
+<th scope="col" class="org-left">description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="org-left">id</td>
+<td class="org-left">INT</td>
+<td class="org-left">-</td>
+<td class="org-left">Unique Number</td>
+</tr>
+
+<tr>
+<td class="org-left">power</td>
+<td class="org-left">REAL</td>
+<td class="org-left">kW</td>
+<td class="org-left">Max power of the motor</td>
+</tr>
+
+<tr>
+<td class="org-left">volt</td>
+<td class="org-left">REAL</td>
+<td class="org-left">V</td>
+<td class="org-left">Voltage</td>
+</tr>
+
+<tr>
+<td class="org-left">pole</td>
+<td class="org-left">INT</td>
+<td class="org-left">-</td>
+<td class="org-left">No. of poles</td>
+</tr>
+
+<tr>
+<td class="org-left">efficiency1</td>
+<td class="org-left">REAL</td>
+<td class="org-left">-</td>
+<td class="org-left">Power efficiency rate at point 1</td>
+</tr>
+
+<tr>
+<td class="org-left">efficiency2</td>
+<td class="org-left">REAL</td>
+<td class="org-left">-</td>
+<td class="org-left">Power efficiency rate at point 2</td>
+</tr>
+
+<tr>
+<td class="org-left">freq1</td>
+<td class="org-left">REAL</td>
+<td class="org-left">-</td>
+<td class="org-left">Input frequency at point 1</td>
+</tr>
+
+<tr>
+<td class="org-left">freq2</td>
+<td class="org-left">REAL</td>
+<td class="org-left">-</td>
+<td class="org-left">Input frequency at point 2</td>
+</tr>
+
+<tr>
+<td class="org-left">fslip1</td>
+<td class="org-left">REAL</td>
+<td class="org-left">-</td>
+<td class="org-left">Slip frequency at point 1</td>
+</tr>
+
+<tr>
+<td class="org-left">fslip2</td>
+<td class="org-left">REAL</td>
+<td class="org-left">-</td>
+<td class="org-left">Slip frequency at point 2</td>
+</tr>
+
+<tr>
+<td class="org-left">maxspeed</td>
+<td class="org-left">REAL</td>
+<td class="org-left">km/h</td>
+<td class="org-left">Max train speed</td>
+</tr>
+
+<tr>
+<td class="org-left">diameter</td>
+<td class="org-left">REAL</td>
+<td class="org-left">mm</td>
+<td class="org-left">Diameter of a wheel</td>
+</tr>
+
+<tr>
+<td class="org-left">gear</td>
+<td class="org-left">REAL</td>
+<td class="org-left">-</td>
+<td class="org-left">Gear ratio</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+
+<div id="outline-container-org93cead9" class="outline-3">
+<h3 id="org93cead9"><span class="section-number-3">4.2</span> Remarks</h3>
+<div class="outline-text-3" id="text-4-2">
+<p>
+The model needs parameters of efficicency, frequency, and slip at two points. The first one is the change point between the constant torque region and constatnt power region of the induction motor. The second one is the change point between the constant power region and breakdown torque region.
+</p>
+</div>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="date">Created: 2021-07-26 Mon 14:11</p>
+</div>
+</body>
+</html>
