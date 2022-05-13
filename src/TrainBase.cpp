@@ -19,6 +19,7 @@ TrainBase::TrainBase() {
     WT = 261.0;
     weight = WM + WT ;
     nCars = 10;
+    inertia = 0.1;
     res_type = RollingResistance::JNR_EMU;
     res_coefs[0] = 1.6;
     res_coefs[1] = 0.035;
@@ -26,7 +27,7 @@ TrainBase::TrainBase() {
     res_coefs[3] = 0.0078;
     start_resist = 3.0 * GRAV_ACC;  // 3kgf/t
     start_resist_sp = 3.0;     // until 3.0 km/h
-    curve_resist_A = 800 * GRAV_ACC;
+    curve_resist_A = 600 * GRAV_ACC;
     //
     spmargin = 1.0;
     reaccel_speed = 4.0/3.6;
@@ -34,11 +35,15 @@ TrainBase::TrainBase() {
     b_reaccel = true;
     //
     n_traction_units = 1;
-    speed_traction_index = 1;
+    speed_traction_index = 0;
     line_index = 1;
     //
-    use_motor = false;
-    motor_index = 1;
+    force_method = ForceMethod::SPEED_TRACTION;
+    motor_index = 0;
+    // SIMPLE METHOD
+    torque_max_speed = 36;
+    power_max_speed = 0;     // Ignore if power_max_speed = 0
+    set_simple_method();
 }
 
 bool TrainBase::read_json(const nlohmann::json& jdata) {
@@ -47,6 +52,7 @@ bool TrainBase::read_json(const nlohmann::json& jdata) {
 		return false;
 	}
 	try {
+        double temp = 0;
 		id = jdata.at("id");
         name = jdata.at("name");
 		max_speed = jdata.at("maxspeed");
@@ -56,8 +62,18 @@ bool TrainBase::read_json(const nlohmann::json& jdata) {
         nCars = jdata.at("nCars");
         if( jdata.contains("traction") == true ) {
             std::string traction_type = jdata.at("traction");
-            if ( traction_type == "motor") use_motor = true;
-            else use_motor = false;
+            if (traction_type == "motor") force_method = ForceMethod::MOTOR;
+            else if (traction_type == "simple") force_method = ForceMethod::SIMPLE;
+            else force_method = ForceMethod::SPEED_TRACTION;
+        }
+        if (jdata.contains("torquemaxspeed") == true) temp = jdata.at("torquemaxspeed");
+        if (temp > 0) {
+            torque_max_speed = temp;
+        }
+        temp = 0;
+        if (jdata.contains("powermaxspeed") == true) temp = jdata.at("powermaxspeed");
+        if (temp > 0) {
+            power_max_speed = temp;
         }
         if( jdata.contains("motorindex") == true ) motor_index = jdata.at("motorindex");
         if( jdata.contains("sptrindex") == true ) speed_traction_index = jdata.at("sptrindex");
@@ -79,6 +95,7 @@ bool TrainBase::read_json(const nlohmann::json& jdata) {
 		fprintf(stderr,"%s\n", e.what());
 		return false;
 	}
+    set_simple_method();
 	return true;
 }
 
@@ -104,4 +121,10 @@ bool TrainBase::set_rolling_resistance(const std::string& model_name, const std:
         return false;
     }
     return true;
+}
+
+void TrainBase::set_simple_method() {
+    fixed_force = (weight * 1000) * (1 + inertia) * fixed_acc;
+    fixed_power = fixed_force * (torque_max_speed / 3.6);
+    simple_const = fixed_power * (power_max_speed / 3.6);
 }

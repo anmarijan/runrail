@@ -1,5 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 #include <stdio.h>
+#define _USE_MATH_DEFINES
 #include <cmath>
 #include <cassert>
 #include <fstream>
@@ -16,6 +17,34 @@ const int RunCode::NextStation = 2;
 const int RunCode::EndOfLine   = 3;
 const int RunCode::EndOfPoint  = 4;
 const int RunCode::Stop        = 5;
+////////////////////////////////////////////////////////////////////////////////
+SpeedTraction::SpeedTraction() {
+    T1 = T2 = T3 = 0;
+    V1 = V2 = V3 = 0;
+    nUnit = 1; unit_conv_factor = 1;
+}
+////////////////////////////////////////////////////////////////////////////////
+void SpeedTraction::set_data(LookupItem pair[], int n_array) {
+    init(n_array);
+    for (size_t i = 0; i < size(); i++) {
+        set(i, pair[i].index, pair[i].value);
+    }
+}
+////////////////////////////////////////////////////////////////////////////////
+void SpeedTraction::set_param(double t1, double t2, double t3, double v1, double v2, double v3) {
+    T1 = t1; T2 = t2; T3 = t3; V1 = v1; V2 = v2; V3 = v3;
+};
+////////////////////////////////////////////////////////////////////////////////
+LookupItem SpeedTraction::get_data(size_t i) {
+    LookupItem d;
+    d.index = 0;
+    d.value = 0;
+    if (i >= 0 && i < size()) {
+        d.index = index[i];
+        d.value = value[i];
+    }
+    return d;
+}
 ////////////////////////////////////////////////////////////////////////////////
 bool SpeedTraction::read_jsonfile(const nlohmann::json& jdata) {
     if( Lookup::read_jsonfile(jdata) == false) return false;
@@ -99,7 +128,7 @@ int setsegspeed(SegmentList& segs, double dec, double train_length, double margi
 Train::Train() {
     line = nullptr;
     init();
-    use_motor = false;
+    force_method = ForceMethod::SPEED_TRACTION;
 }
 //-----------------------------------------------------------------------------
 // Train Constructor with segment information
@@ -107,7 +136,7 @@ Train::Train() {
 Train::Train(const SegmentList& segs) {
     line = nullptr;
     init(segs);
-    use_motor = false;
+    force_method = ForceMethod::SPEED_TRACTION;
 }
 //-----------------------------------------------------------------------------
 // Initialize the temporary variables
@@ -117,11 +146,13 @@ void Train::init() {
     distance   = 0;
     speed      = 0;
     station_timer = 0.0;
+    force = 0;
+    power = 0;
 }
 //-----------------------------------------------------------------------------
 // Train: constructor with segment information
 //-----------------------------------------------------------------------------
-void Train::init(const std::vector<Segment>& segs) {
+void Train::init(const SegmentList& segs) {
     init();
     seg_it = segs.begin();
 };
@@ -181,7 +212,7 @@ double Train::get_rolling_resist(double v) const {
 //-----------------------------------------------------------------------------
 void Train::set_motor(std::shared_ptr<Motor> pt) {
     motor = pt;
-    double F = calc_need_force(20, 0.84);
+    double F = calc_need_force(20.0, 0.84);
     motor->init(F/n_traction_units);
 }
 //-----------------------------------------------------------------------------
@@ -216,9 +247,17 @@ double Train::get_regist(double v, double gradient, double radius) const {
 //-----------------------------------------------------------------------------
 double Train::get_force(double v) const {
     double F = 0.0;
-    assert(speed_traction);
-    if( use_motor ) F = motor->tract(v) * n_traction_units;
-    else F = speed_traction->traction(v);
+    if (force_method == ForceMethod::MOTOR) F = motor->tract(v) * n_traction_units;
+    else if (force_method == ForceMethod::SIMPLE) {
+        if (v <= torque_max_speed) F = fixed_force;
+        else if (power_max_speed > torque_max_speed && v > power_max_speed) {
+            F = simple_const / std::pow(v / 3.6, 2);
+        } else F = fixed_power / (v / 3.6);
+    }
+    else {
+        assert(speed_traction);
+        F = speed_traction->traction(v);
+    }
     return F;
 }
 //-----------------------------------------------------------------------------
@@ -233,11 +272,10 @@ double Train::get_force(double v) const {
 // return value is in m/s^2
 //-----------------------------------------------------------------------------
 double Train::df(double sp, double gradient, double radius, bool no_force = false) const {
-    double inercia = 0.1;
     double v = sp * 3.6;  // input (m/s) -> km/h for well-known formulaes
     double f =  no_force ? 0.0: get_force(v);
     f = f - get_regist(v,gradient,radius);
-    double M = weight * 1000 * ( 1 + inercia );  // ton -> kg
+    double M = weight * 1000 * ( 1 + inertia );  // ton -> kg
     return f/M;
 }
 //-----------------------------------------------------------------------------
@@ -269,7 +307,7 @@ double Train::calc_need_force(double speed, double acceleration) const {
 int Train::solve(const SegmentList& segs, double x0, double v0, double v1, VarSet* var) const {
     int ret = 0;
     SegmentList::const_iterator it = segs.cbegin();
-    double total_length ;
+    double total_length = 0;
     while( it != segs.cend() ) {
         total_length = (*it).distance + (*it).length;
         if( (*it).distance <= x0 &&  x0 < total_length ) break;
@@ -469,6 +507,7 @@ int Train::update() {
         if (entered == false) limspeed = x;
     }
     // Check if it is necessary to continue breaking
+    /*
     if (status == TrainStatus::Breaking) {
 
         if (distance - 0.5 * (next_max_speed * next_max_speed - speed * speed) / dec < next_dist ) {
@@ -478,6 +517,7 @@ int Train::update() {
             else status = TrainStatus::Coasting;
         }
     }
+    */
     // In traction or coasting
 	if( status == TrainStatus::Traction || status == TrainStatus::Coasting || status == TrainStatus::Constant) {
 		// Consider braking if the present speed is lager than the next speed limit
@@ -493,8 +533,9 @@ int Train::update() {
         }
         if(status == TrainStatus::Coasting) {
             step(gradient,radius, &v,&x,&a, true);
-            if (v > std::sqrt(next_max_speed * next_max_speed + 2 * dec * (next_dist - x)))
+            if (v > std::sqrt(next_max_speed * next_max_speed + 2 * dec * (next_dist - x))) {
                 status = TrainStatus::Breaking;
+            }
             // if gradient is negative, speed can increase.
         }
         else {
@@ -510,8 +551,8 @@ int Train::update() {
 		} else if (status == TrainStatus::Traction) { // in case of traction
 
             // apply speed before update
-            force = get_force(speed*3.6);
-            power = force * speed / 1000; // J/s -> kW
+            force = get_force(speed*3.6);  // N
+            power = force * speed / 1000; //  N x m/s = J/s -> kW
             //step(gradient, radius, &speed, &distance, &accel);
             speed = v;
             distance = x;
@@ -570,7 +611,10 @@ int Train::update() {
             status = TrainStatus::Traction;
         } else {
             // Assume the deceleration is constant in case of breaking
-            accel = dec * (-1);
+            // accel = dec * (-1);
+            accel = 0.5 * (next_max_speed * next_max_speed - speed * speed) / (next_dist - distance);
+            force = calc_need_force(speed, accel);
+            power = force * speed / 1000; // J/s -> kW
             double v = speed + accel * dt;
             if ( v < 0 ) {
                 v = 0.0;
@@ -616,6 +660,7 @@ int Train::update() {
             ret = RunCode::NextStation;
         } else {
             ret =  RunCode::NextSegment;
+            if (status == TrainStatus::Breaking) status = TrainStatus::Coasting;
         }
 		if( seg_it->head_only) entered = true;
         else entered = false; // need to consider the length of the train to determine the max speed
@@ -706,6 +751,6 @@ void Train::run_print(FILE* fp) {
     printf("%d\t%.0f\t%.2f\t%.1f\t%.3f\t%.0f\t%d\n",static_cast<int>(status),
         total_time, distance, speed*3.6, accel,force,a);
 */
-    fprintf(fp, "%d\t%.0f\t%.2f\t%.1f\t%.3f\t%.0f\t%.1f\n",static_cast<int>(status),
+    fprintf(fp, "%d\t%.3f\t%.2f\t%.1f\t%.3f\t%.0f\t%.1f\n",static_cast<int>(status),
         total_time, distance, speed*3.6, accel,force,power);
 }

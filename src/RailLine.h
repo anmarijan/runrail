@@ -59,7 +59,7 @@ public:
 	void clear();
 	Segment* getSegment(int i);
 	void setSegment(int i, const Segment& s);
-	unsigned int nSegment() const { return segs.size(); }
+	size_t nSegment() const { return segs.size(); }
 	int nStation() const { return FnStation; }
 	double length() const;
 	void make_reverse(const RailLine& r);

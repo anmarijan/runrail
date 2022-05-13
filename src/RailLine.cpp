@@ -151,8 +151,8 @@ void RailLine::make_reverse(const RailLine& r)
 {
 	segs.resize(r.nSegment());
 	double L = r.segs[r.nSegment()-1].distance;
-	for(unsigned int i=0; i < r.nSegment(); i++) {
-		int op = r.nSegment()-1-i;
+	for(size_t i=0; i < r.nSegment(); i++) {
+		size_t op = r.nSegment()-1-i;
 		segs[i].type  = r.segs[op].type;
 		//segs[i].notch = r.segs[op].notch;
 		//segs[i].set_name(r.segs[op].name);

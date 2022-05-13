@@ -18,7 +18,7 @@ class Lookup {
 protected:
 	std::vector<double> index;
 	std::vector<double> value;
-	int Fsize;
+	size_t Fsize;
 public:
 	int id;
 	std::string label_x;
@@ -31,12 +31,12 @@ public:
 public:
 	Lookup();
 public:
-	void init(int s);
-	void init(int s, const double data[][2]);
-	void set(int n, double x, double y);
+	void init(size_t s);
+	void init(size_t s, const double data[][2]);
+	void set(size_t n, double x, double y);
 	double get_index(int i) const;
 	double get_value(int i) const;
-	int size() const {return Fsize;}
+	size_t size() const {return Fsize;}
 	double lowval(double x) const;
 	double midval(double x) const;
 	double highval(double x) const;

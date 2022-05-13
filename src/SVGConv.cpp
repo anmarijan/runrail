@@ -18,7 +18,7 @@ void SVGLine::test_print() {
 }
 void SVGPolyline::test_print() {
     printf("[POLYLINE]");
-    for(const auto point: pts) {
+    for(const auto& point: pts) {
         printf(" (%f,%f)", point.x, point.y);
     }
     printf("\n");
@@ -31,40 +31,44 @@ void SVGCurve::test_print() {
 void SVGText::test_print() {
     printf("[TEXT] (%g,%g) %s\n", x, y, str.c_str());
 }
-void SVGLine::print_svg(FILE* fp, convfunc func) {
-    double rx1, ry1, rx2, ry2;
-    func(x1,y1,rx1,ry1);
-    func(x2,y2,rx2,ry2);
-    fprintf(fp,"<line x1=\"%g\" y1=\"%g\" x2=\"%g\" y2=\"%g\" />\n",
-        rx1,ry1,rx2,ry2);
+//---------------------------------------------------------------------------------------
+// Convert the coordinates 
+//---------------------------------------------------------------------------------------
+void SVGPolyline::convert(convfunc func) {
+    double rx, ry;
+    for (auto& element : pts) {
+        func(element.x, element.y, rx, ry);
+        element.x = rx;
+        element.y = ry;
+    }
 }
-void SVGPolyline::print_svg(FILE* fp, convfunc func) {
+void SVGLine::print_svg(FILE* fp) {
+    fprintf(fp, "<line x1=\"%g\" y1=\"%g\" x2=\"%g\" y2=\"%g\" />\n", x1, y1, x2, y2);
+}
+void SVGPolyline::print_svg(FILE* fp) {
     double rx, ry;
 
     fprintf(fp,"<polyline fill=\"none\" points=\"");
     std::list<SVGPoint>::const_iterator it = pts.cbegin();
-    func(it->x, it->y, rx, ry);
+    rx = it->x;
+    ry = it->y;
     fprintf(fp,"%g,%g", rx, ry);
     ++it;
     while( it != pts.cend() ) {
-        func(it->x, it->y, rx, ry);
+        rx = it->x;
+        ry = it->y;
         fprintf(fp," %g,%g", rx, ry);
         ++it;
     }
     fprintf(fp, "\" />\n");
 }
-void SVGCurve::print_svg(FILE* fp, convfunc func) {
-    SVGPoint cvpt[4];
-    for(int i=0; i < 4; i++) {
-        func(pt[i].x, pt[i].y, cvpt[i].x, cvpt[i].y);
-    }
-    fprintf(fp,"<path d=\"M%g,%g C%g,%g %g,%g %g,%g\">\n",
-        cvpt[0].x,cvpt[0].y,cvpt[1].x,cvpt[1].y, cvpt[2].x,cvpt[2].y,cvpt[3].x,cvpt[3].y);
+void SVGCurve::print_svg(FILE* fp) {
+    fprintf(fp, "<path d=\"M%g,%g C%g,%g %g,%g %g,%g\">\n",
+        pt[0].x, pt[0].y, pt[1].x, pt[1].y, pt[2].x, pt[2].y, pt[3].x, pt[3].y);
+
 }
-void SVGText::print_svg(FILE* fp, convfunc func) {
-    double sx, sy;
-    func(x,y,sx,sy);
-    fprintf(fp,"<text x=\"%g\" y=\"%g\">%s</text>\n", sx, sy, str.c_str());
+void SVGText::print_svg(FILE* fp) {
+    fprintf(fp,"<text x=\"%g\" y=\"%g\">%s</text>\n", x, y, str.c_str());
 }
 
 //---------------------------------------------------------------------------------------
@@ -76,6 +80,10 @@ SVGConvert::SVGConvert() {
     base_axis_x = 0;
     base_axis_y = 0;
     xtic_unit = 500;
+    simple_dist = 2;
+    xlim_min = ylim_min = 0;
+    xlim_max = 0;
+    ylim_max = 10;
 }
 //---------------------------------------------------------------------------------------
 // Read rail data
@@ -90,15 +98,15 @@ bool SVGConvert::read_rail(const char* fname) {
     double pre_speed = 0;
     for(const auto& item: segs) {
         if( start > 0) {
-            track.add(item.distance, pre_speed);
+            track.push_back(bg_point(item.distance, pre_speed));
         }
-        track.add(item.distance, item.speed);
+        track.push_back(bg_point(item.distance, item.speed));
         dist = item.distance + item.length;
         pre_speed = item.speed;
         if( base_axis_y < pre_speed) base_axis_y = pre_speed;
         start++;
     }
-    track.add(dist, pre_speed);
+    track.push_back(bg_point(dist, pre_speed));
     return true;
 }
 //---------------------------------------------------------------------------------------
@@ -113,68 +121,73 @@ bool SVGConvert::read_rail(std::shared_ptr<RailLine>& line) {
     double pre_speed = 0;
     for(const auto& item: line->segs) {
         if( start > 0) {
-            track.add(item.distance, pre_speed);
+            track.push_back(bg_point(item.distance, pre_speed));
         }
-        track.add(item.distance, item.speed);
+        track.push_back(bg_point(item.distance, item.speed));
         dist = item.distance + item.length;
         pre_speed = item.speed;
         if( base_axis_y < pre_speed) base_axis_y = pre_speed;
         start++;
     }
-    track.add(dist, pre_speed);
+    track.push_back(bg_point(dist, pre_speed));
     return true;
 }
 //---------------------------------------------------------------------------------------
 // The maximum numbre of points = 1000
 //---------------------------------------------------------------------------------------
 bool SVGConvert::load(const char* fname) {
-    std::ifstream fi(fname);
-    if (!fi) return false;
+    using namespace boost::assign;
+    
     std::string str;
     std::list<ResultData> results;
     // Load the data into the memory
-
-    while( std::getline(fi,str) ) {
-        if ( str.empty() ) return false;
-        std::istringstream iss(str);
-        ResultData d;
-        iss >> d;
-        if (!iss) {
-            return false;
+    std::ifstream fi(fname);
+    if (!fi) return false;
+    // Header file
+    if (std::getline(fi, str)) {
+        while (std::getline(fi, str)) {
+            if (str.empty()) return false;
+            std::istringstream iss(str);
+            ResultData d;
+            iss >> d;
+            if (!iss) {
+                return false;
+            }
+            if (d.distance > base_axis_x) base_axis_x = d.distance;
+            if (d.speed > base_axis_y) base_axis_y = d.speed;
+            results.push_back(d);
         }
-        if (d.distance > base_axis_x) base_axis_x = d.distance;
-        if (d.speed > base_axis_y) base_axis_y = d.speed;
-        results.push_back(d);
+    }
+    else {
+        return false;
     }
     fi.close();
-
+    /* Calculate xlim_max and xlim_may based on base_axis_x and base_axis_y */
+    set_limit();
+    /* Construct svg_items */
     int pre_status = -1;
     double pre_distance = 0;
     double pre_speed = 0;
     std::size_t count = 1;
-    list<SVGPoint> data;
-    SVGPoint pt = SVGPoint(0,0);
-    data.push_back(pt);
+    boost::geometry::model::linestring<bg_point> data;
+    data += bg_point(0.0, 0.0);
     for(list<ResultData>::const_iterator it = results.cbegin(); it != results.cend(); ++it) {
         if( (pre_status != -1 && pre_status != it->status) || count == results.size()) {
             if( pre_status == 3 ) {
                 // in station, no move
             } if(data.size() == 2 ) {
-                double x1 = data.front().x; double y1 = data.front().y;
-                double x2 = data.back().x;  double y2 = data.back().y;
-                svg_items.emplace_back(make_unique<SVGLine>(x1,y1,x2,y2));
+                svg_items += data;
             } else if (data.size() < 1000) {
-                unique_ptr<SVGPolyline> pointer = make_unique<SVGPolyline>();
-                for(list<SVGPoint>::const_iterator pi=data.cbegin(); pi != data.cend(); ++pi) {
-                    double x = pi->x; double y = pi->y;
-                    pointer->add(x,y);
-                }
-                svg_items.push_back(move(pointer));
+                svg_items += data; 
             }
             data.clear();
-            data.emplace_back(SVGPoint(pre_distance, pre_speed));
+            data.push_back(bg_point(pre_distance, pre_speed));
         }
-        data.emplace_back(SVGPoint(it->distance, it->speed));
+        if (data.size() >= 1000) {
+            svg_items += data;
+            data.clear();
+        }
+        data.push_back(bg_point(it->distance, it->speed));
         pre_distance = it->distance;
         pre_speed = it->speed;
         pre_status = it->status;
@@ -182,6 +195,9 @@ bool SVGConvert::load(const char* fname) {
     }
     return true;
 }
+//-----------------------------------------------------------------------------
+// Convert distance(km)-speed(km/h) to screen x-y points
+//-----------------------------------------------------------------------------
 void SVGConvert::convert_func(double x, double y, double& rx, double& ry) {
     double glwidth = xlim_max - xlim_min;
     double glheight = ylim_max - ylim_min;
@@ -191,10 +207,11 @@ void SVGConvert::convert_func(double x, double y, double& rx, double& ry) {
     ry = svg_axis_y - (y-ylim_min)*scale_y + ymargin;
 }
 //-----------------------------------------------------------------------------
-// Dummy function when the same coordiantes are used.
+// Set the maximam distance for the simplify method
 //-----------------------------------------------------------------------------
-void SVGConvert::copy_func(double x, double y, double& rx, double& ry) {
-    rx = x; ry = y;
+void SVGConvert::set_simplify(double a) {
+    if (a >= 0) simple_dist = a;
+    else simple_dist = 0;
 }
 //-----------------------------------------------------------------------------
 // speed = 10km/h interval
@@ -252,38 +269,58 @@ void SVGConvert::set_ytics() {
     }
 }
 //-----------------------------------------------------------------------------
+// Convert and simplify the raw data before print
+//-----------------------------------------------------------------------------
+void SVGConvert::print_lines(FILE* fp, const bg_linestring& item) {
+    //for (const auto& item : svg_items) {
+        bg_linestring converted;
+        bg_linestring output;
+        for (const auto& p : item) {
+            double rx, ry;
+            convert_func(p.x(), p.y(), rx, ry);
+            converted.push_back(bg_point(rx,ry));
+        }
+        fprintf(fp, "<polyline fill=\"none\" points=\"");
+        boost::geometry::simplify(converted, output, simple_dist);
+        int counter = 0;
+        for (const auto& cp : output) {
+            if (counter == 0) {
+                fprintf(fp, "%g,%g", cp.x(), cp.y());
+            }
+            else fprintf(fp, " %g,%g", cp.x(), cp.y());
+            counter++;
+        }
+        fprintf(fp, "\" />\n");
+    //}
+}
+//-----------------------------------------------------------------------------
 // Todo: make subroutines
 //-----------------------------------------------------------------------------
 void SVGConvert::svg_print(FILE* fp) {
-
-    // simulation unit -> screeen unit
-    convfunc func = [&](double x, double y, double& rx, double& ry)
-    {return this->convert_func(x,y,rx,ry);};
     // Original data is in screen unit
-    convfunc dummy_func = [&](double x, double y, double& rx, double& ry) {
-        return this->copy_func(x,y,rx,ry);
-    };
     fprintf(fp, "<?xml version=\"1.0\"?>\n");
     fprintf(fp, "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"1000\" height=\"800\" viewBox=\"0 0 1000 800\">\n");
+    // font style
+    fprintf(fp, "<style>text{font-family:Arial,sans-serif;}</style>\n");
     // box
     fprintf(fp,"<rect x=\"%g\" y=\"%g\" width=\"%g\" height=\"%g\" fill=\"none\" stroke=\"black\" stroke-width=\"1\" />\n",
         xmargin,ymargin, svg_axis_x, svg_axis_y);
     fprintf(fp,"<g stroke=\"green\" stroke-width=\"1\">\n");
-    for(const auto& pointer: svg_items) {
-        pointer->print_svg(fp, func);
+    
+    for (const auto& pointer : svg_items) {
+        print_lines(fp, pointer);
     }
     fprintf(fp,"</g>\n");
     fprintf(fp,"<g stroke=\"red\" >\n");
-    track.print_svg(fp,func);
+    print_lines(fp, track);
     fprintf(fp,"</g>\n");
     /*************************************
     // xtics
     *************************************/
     set_xtics();
-    // fprintf(fp,"<g stroke=\"black\" stroke-width=\"1\" transform=\"translate(0.5,0.5)\">\n");
     fprintf(fp,"<g stroke=\"black\" stroke-width=\"1\">\n");
     for(auto& item: xtics) {
-        item.print_svg(fp, dummy_func);
+        item.print_svg(fp);
     }
     fprintf(fp,"</g>\n");
     /*************************************
@@ -291,17 +328,16 @@ void SVGConvert::svg_print(FILE* fp) {
     *************************************/
     fprintf(fp,"<g font-family=\"Courier New\" font-size=\"16\">\n");
     for(auto& item: xlabels) {
-        item.print_svg(fp, dummy_func);
+        item.print_svg(fp);
     }
     fprintf(fp,"</g>\n");
     /*************************************
     // ytics
     *************************************/
-   set_ytics();
-    // fprintf(fp,"<g stroke=\"black\" stroke-width=\"1\" transform=\"translate(0.5,0.5)\">\n");
+    set_ytics();
     fprintf(fp,"<g stroke=\"black\" stroke-width=\"1\">\n");
     for(auto& item: ytics) {
-        item.print_svg(fp,dummy_func);
+        item.print_svg(fp);
     }
     fprintf(fp, "</g>\n");
     /*************************************
@@ -309,11 +345,11 @@ void SVGConvert::svg_print(FILE* fp) {
     *************************************/
     fprintf(fp,"<g font-family=\"Courier New\" font-size=\"16\">\n");
     for(auto& item: ylabels) {
-        item.print_svg(fp, dummy_func);
+        item.print_svg(fp);
     }
     fprintf(fp,"</g>\n");
     // labels
-    double x = xmargin + svg_axis_x/2 - 6*12;
+    double x = xmargin + svg_axis_x/2 - 6.0*12.0;
     double y = ymargin + svg_axis_y + 20 + 50;
     fprintf(fp,"<text x=\"%g\" y=\"%g\" font-family=\"Courier New\" font-size=\"16\">Distance(km)</text>\n", x, y);
     x = 30;
@@ -336,8 +372,3 @@ bool SVGConvert::svg_save(const char* fname) {
     return true;
 }
 
-void SVGConvert::test_print() {
-    for(const auto& pointer: svg_items) {
-        pointer->test_print();
-    }
-}

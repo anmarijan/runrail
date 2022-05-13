@@ -11,7 +11,7 @@ using namespace nlohmann;
 // Constructor
 //-----------------------------------------------------------------------------
 RunControl::RunControl() {
-
+    mSvgMaxpt = 1;
 }
 //-----------------------------------------------------------------------------
 // Get the line pointer of id = line_id
@@ -121,8 +121,8 @@ bool RunControl::read_params(const char* fname) {
 		fs >> jroot;
         fs.close();
 	}
-    catch (...) {
-        fprintf(stderr,"Format Error in %s\n", fname);
+    catch (nlohmann::json::exception& e) {
+        fprintf(stderr,"Format Error in %s (%s)\n", fname, e.what());
 		return false;
 	}
     bool ret = true;
@@ -162,6 +162,11 @@ bool RunControl::read_params(const char* fname) {
             }
             lines.push_back(line);
         }
+        if (jdata.find("maxpt") != jdata.end()) {
+            mSvgMaxpt = jdata.at("maxpt");
+            if (mSvgMaxpt <= 0)  mSvgMaxpt = 0;
+        }
+
         set_train_motor();
         set_train_traction();
     } catch(nlohmann::json::exception& e) {
@@ -250,6 +255,8 @@ int RunControl::run1(const char* fname) {
     int counter = 0;
     int information = 0;
     printf("[2] Start Calculation.\n");
+    fprintf(fp, "status\ttime\tdistance\tspeed\taccel\tforce\tpower\n");
+    train->run_print(fp);
     while(true) {
          //printf("[%5d]\n", counter);
         int result = train->main_run();
@@ -274,6 +281,25 @@ int RunControl::run1(const char* fname) {
     present_train = train;
     present_line = train->get_line();
     return (0);
+}
+//-----------------------------------------------------------------------------
+//
+//-----------------------------------------------------------------------------
+void RunControl::traction_test(const char* fname) {
+    FILE* fp;
+    errno_t err = fopen_s(&fp, fname, "wt");
+    if (err != 0) {
+        printf("Cannot create file %s\n", fname);
+        return;
+    }
+    std::shared_ptr<Train> train = trains.front();
+    fprintf(fp, "Speed(km/h)\tTraction(N)\n");
+    for (int i = 0; i < 101; i++) {
+        double v = (double)i;
+        double t = train->get_force(v);
+        fprintf(fp, "%d\t%f\n", i, t);
+    }
+    fclose(fp);
 }
 //-----------------------------------------------------------------------------
 //

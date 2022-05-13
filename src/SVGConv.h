@@ -7,10 +7,19 @@
 #include <iostream>
 #include <memory>
 #include <list>
+#include <vector>
 #include <functional>
 ///////////////////////////////////////////////////////////////////////////////
+// For simplify
+#include <boost/geometry.hpp>
+//#include <boost/geometry/algorithms/simplify.hpp>
+#include <boost/geometry/geometries/linestring.hpp>
+#include <boost/geometry/geometries/point_xy.hpp>
+#include <boost/assign.hpp>
+///////////////////////////////////////////////////////////////////////////////
 using convfunc = std::function< void(double, double, double&, double&) >;
-
+typedef boost::geometry::model::d2::point_xy<double> bg_point;
+typedef boost::geometry::model::linestring<bg_point> bg_linestring;
 
 class SVGPoint {
 public:
@@ -19,12 +28,11 @@ public:
     SVGPoint(double ix, double iy): x(ix), y(iy) {}
 };
 
-
 class SVGObject {
     int id;
 public:
     SVGObject(): id(0) {};
-    virtual void print_svg(FILE* fp, convfunc func) = 0;
+    virtual void print_svg(FILE* fp) = 0;
     virtual void test_print() = 0;
 };
 
@@ -40,7 +48,7 @@ public:
     void set(double x1, double y1, double x2, double y2) {
         this->x1 = x1; this->x2 = x2; this->y1 = y1; this->y2=y2;
     }
-    void print_svg(FILE* fp, convfunc func);
+    void print_svg(FILE* fp);
     void test_print();
 };
 
@@ -53,7 +61,8 @@ public:
     void clear() {
         pts.clear();
     }
-    void print_svg(FILE* fp, convfunc func);
+    void print_svg(FILE* fp);
+    void convert(convfunc func);
     void test_print();
 };
 
@@ -63,7 +72,7 @@ public:
     void add(const SVGPoint& p1,const SVGPoint& p2,const SVGPoint& p3,const SVGPoint& p4) {
         pt[0] = p1; pt[1] = p2; pt[2] = p3; pt[3]=p4;
     }
-    void print_svg(FILE* fp, convfunc func);
+    void print_svg(FILE* fp);
     void test_print();
 };
 
@@ -75,7 +84,7 @@ public:
     SVGText(double ix, double iy, std::string& istr) {
         x = ix; y = iy; str = istr;
     };
-    void print_svg(FILE* fp, convfunc func);
+    void print_svg(FILE* fp);
     void test_print();
 };
 //-----------------------------------------------------------------------------
@@ -83,8 +92,8 @@ public:
 //-----------------------------------------------------------------------------
 class ResultData {
 public:
-    int status, total_time;
-    double distance, speed, accel,force,power;
+    int status;
+    double total_time, distance, speed, accel,force,power;
 public:
     friend std::istream& operator >> (std::istream& in, ResultData& d) {
         in >> d.status >> d.total_time >> d.distance >> d.speed >> d.accel >> d.force >> d.power;
@@ -100,24 +109,25 @@ class SVGConvert {
     double svg_axis_x, svg_axis_y;
     double xmargin, ymargin;
     double xtic_unit;  // 500m interval
-    std::list<std::unique_ptr<SVGObject>> svg_items;
-    SVGPolyline track;
+    std::list<bg_linestring> svg_items;
+    bg_linestring track;
     std::list<SVGLine> xtics;
     std::list<SVGText> xlabels;
     std::list<SVGLine> ytics;
     std::list<SVGText> ylabels;
+    double simple_dist;   // used for the simplify function    
 public:
     SVGConvert();
     bool load(const char* fname);
     bool read_rail(const char* fname);
     bool read_rail(std::shared_ptr<RailLine>& line);
     void convert_func(double x, double y, double& rx, double& ry);
-    void copy_func(double x, double y, double& rx, double& ry);
     void set_limit();
+    void set_simplify(double a);
     void svg_print(FILE * fp);
     bool svg_save(const char* fname);
-    void test_print();
 protected:
+    void print_lines(FILE* fp, const bg_linestring& ls);
     void set_xtic_unit();
     void set_xtics();
     void set_ytics();

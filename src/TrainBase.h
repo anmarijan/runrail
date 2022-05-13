@@ -5,11 +5,12 @@
 #include "nlohmann/json.hpp"
 ////////////////////////////////////////////////////////////////////////////////
 // default values
-#define ACCELERATION 0.83
-#define DECELERATION 1.0
-#define DEFJERK 0.6
-#define COASTING 0.1
+constexpr double ACCELERATION = 0.83;
+constexpr double DECELERATION = 1.0;
+constexpr double DEFJERK = 0.6;
+constexpr double COASTING = 0.1;
 ////////////////////////////////////////////////////////////////////////////////
+enum class ForceMethod { MOTOR, SPEED_TRACTION, SIMPLE };
 enum class RollingResistance {None, Quadratic, JNR_EMU_MT, JNR_EMU};
 //-----------------------------------------------------------------------------
 // TrainBase class
@@ -28,16 +29,21 @@ public: // Property values of this train
     double weight;           // ton
     double WM, WT;           // WT=Weith of trailer cars, WM=motor cars (ton)
     double max_speed;        // Maximum speed of this train (km/h)
-    double fixed_acc;        // accelerations (m/s^2)
+    double fixed_acc;        // Fixed accelerations (m/s^2)
     double dec, coast;       // decelerations (m/s^2)
     double jerk;             // jerk (m/s^3)
+    double fixed_force;      // Fixed force (N) in const-torque (ForceMethod::SIMPLE)
+    double torque_max_speed; // Max speed (km/h) of torque area (ForceMethod::SIMPLE)
+    double power_max_speed;  // Max speed (km/h) of constant power area (ForceMethod::SIMPLE)
+    double fixed_power;      // Fixed power (ForceMethod::SIMPLE)
+    double simple_const;     // Constant value for special area (ForceMethod:SIMPLE)
     double res_coefs[10];    // Each train keeps coefficients of resistance model
     double start_resist;     // Starting rolling resistance (N/t)
     double start_resist_sp;  // Maximum speed of the starting rolling resistance (km/h)
     double curve_resist_A;   // Paremeter of curve (R m) resist A/R (N/t)
     double inertia;
 	double aux_power;      // power of auxiliary equipment
-    bool use_motor;
+    ForceMethod force_method;
 public:  // Calculation method
     RollingResistance res_type;   // Formula of rolling resistance calculation
     bool b_fix_speed;      // Fixed speed operation if true
@@ -51,6 +57,7 @@ public:
     bool read_json(const nlohmann::json& jdata);
 private:
     bool set_rolling_resistance(const std::string& model_name, const std::vector<double>& data);
+    void set_simple_method();
 };
 
 #endif

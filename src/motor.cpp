@@ -7,6 +7,7 @@
 // 1 Motor
 //-----------------------------------------------------------------------------
 Motor::Motor() {
+    id = 0;
 	max_power = 182;       // Max power (kW)
     Volt = 1100;           // Voltage (1100V)
 	n_pole = 4;            // Numner of Poles
@@ -20,6 +21,11 @@ Motor::Motor() {
 	full_speed = 150;      // maximum speed
 	diameter = 820;        //Diameter of wheels (mm)
 	gear = 7.07;           //Reduction ratio
+    coef_a = (fs2 * fs2 - fs1 * fs1) / ((fs2 / fb2) / (fs1/fb1)) - fs1 * fs1;
+    coef_t = ((coef_a + fs1 * fs1) / (fs1 / fb1)) * (max_power * power_coef1 * 1000) / (Volt * Volt);
+    double T0 = torque(fb1, fs1);
+    double WD = diameter / 1000;
+    F0 = T0 * gear / (WD / 2);
 }
 //-----------------------------------------------------------------------------
 // Torque between Point-1 and Point-2
@@ -35,8 +41,8 @@ double Motor::torque(double fi, double fs) {
 // max_power (kW)
 // diameter (mm)
 // coef_a = pow(a), a = r/(2*pi*L)
-// I = s*E/{(2*pi*L)*sqrt(pow(a)+pow(s*f))}
-// W = I*I*r/s = coef_t * V^2 * (s/(a^2+fs^2))
+// I = s*E2/{(2*pi*L)*sqrt(pow(a)+pow(s*f))}
+// P2 = I2*I2*r2/s = coef_t * E2^2 * (s/(a^2+fs^2))
 //-----------------------------------------------------------------------------
 void Motor::init(double F) {
     double WD = diameter /1000;

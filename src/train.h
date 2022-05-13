@@ -33,12 +33,12 @@ public:
 	double V1, V2, V3;
 	int nUnit;
 public:
-	SpeedTraction() { nUnit = 1; unit_conv_factor=1;};
+	SpeedTraction();
 	void set_data(LookupItem pair[], int n_array);
 	void set_param(double t1, double t2, double t3, double v1, double v2, double v3);
 
 	double traction(double sp);
-	LookupItem get_data(int i);
+	LookupItem get_data(size_t i);
     bool read_jsonfile(const nlohmann::json& jdata);
 };
 ///////////////////////////////////////////////////////////////////////
@@ -65,8 +65,8 @@ public:
 private:
     // Time dependent variables
     double total_power;  // Total Work (acceleration only) from the beginning of the Simulation (J)
-    double total_time;   // Total time form the beginning of the Simulation (t)
-    double acc_tm;       // Total time of traction (t)
+    double total_time;   // Total time from the beginning of the Simulation (s)
+    double acc_tm;       // Total time of traction (s)
     double distance;     //(m)
     double speed;        //(m/s)
     double accel;        //(m/s^2)
@@ -89,7 +89,7 @@ public:
     Train(const SegmentList& segs);
     void init();
     void init(const SegmentList& segs);
-    int run(double target_dist);
+    //int run(double target_dist);
     double get_speed() const { return speed; };
     double get_dist() const { return distance; };
     TrainStatus get_status() const { return status;};

@@ -8,6 +8,7 @@
 #include "train.h"
 ///////////////////////////////////////////////
 class RunControl {
+    double mSvgMaxpt;
 public:
     std::string errmsg;
     std::list<std::shared_ptr<Train>> trains;
@@ -28,7 +29,9 @@ public:
     void set_train_motor();
     bool set_train_line();
     int run1(const char* fname);
+    void traction_test(const char* fname);
     void print_data();
+    double svg_maxpt() { return mSvgMaxpt; };
 };
 
 #endif

@@ -1,6 +1,4 @@
 #include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
 #include <new>
 #include <memory>
 #include <iostream>
@@ -21,6 +19,7 @@ using namespace nlohmann;
 #include "Lookup.h"
 //----------------------------------------------------------------------------
 Lookup::Lookup() {
+	id = 0;
 	Fsize = 0;
 	min_speed = 10;
 	max_speed = 500;
@@ -28,14 +27,14 @@ Lookup::Lookup() {
 //-----------------------------------------------------------------------------
 //  Initialize
 //-----------------------------------------------------------------------------
-void Lookup::init(int s) {
+void Lookup::init(size_t s) {
 	Fsize = 0;
 	if ( s > 0 ) {
 		try {
 			index.resize(s);
 			value.resize(s);
 			Fsize = s;
-		} catch (std::bad_alloc& e) {
+		} catch (std::bad_alloc& ) {
 			index.clear();
 			value.clear();
         }
@@ -44,16 +43,16 @@ void Lookup::init(int s) {
 //-----------------------------------------------------------------------------
 //  Initialize: s=size, data= size x 2 table array
 //-----------------------------------------------------------------------------
-void Lookup::init(int s, const double data[][2]) {
+void Lookup::init(size_t s, const double data[][2]) {
 	init(s);
 	if( Fsize > 0 ) {
-		for(int i=0; i < Fsize; i++) {
+		for(size_t i=0; i < Fsize; i++) {
 			index[i] = data[i][0];
 			value[i] = data[i][1];
         }
     }
 }
-void Lookup::set(int n, double x, double y) {
+void Lookup::set(size_t n, double x, double y) {
 	if( n >= 0 && n < Fsize ) {
 		index[n] = x;
 		value[n] = y;
@@ -72,8 +71,8 @@ double Lookup::get_value(int i) const {
 void Lookup::index_sort()
 {
 	double temp;
-	for(int i=0; i < Fsize-1; i++) {
-		for(int j=1; j < Fsize-1-i; j++) {
+	for(size_t i=0; i < Fsize-1; i++) {
+		for(size_t j=1; j < Fsize-1-i; j++) {
 			if( index[j] < index[j-1] ) {
 				temp = index[j];
 				index[j] = index[j-1];
@@ -95,7 +94,7 @@ double Lookup::midval(double x) const {
     if ( size() == 0 || x < index[0]) result = 0.0;
     else if ( x >= index[size()-1] ) result = value[size()-1];
     else {
-        for(int i=1; i < size(); i++) {
+        for(size_t i=1; i < size(); i++) {
             double a = value[i-1];
             double b = value[i];
             if( x < index[i] ) {
@@ -114,7 +113,7 @@ double Lookup::lowval(double x) const {
 	if( size() == 0 ) result = 0;
 	else if (x < index[0]) result = min_speed;
 	else { 
-		for(int i=size()-1; i >= 0; i--) {
+		for(size_t i=size()-1; i >= 0; i--) {
 			if( x >= index[i] ) {
 				result = value[i];
 				break;
@@ -128,7 +127,7 @@ double Lookup::highval(double x) const {
 	double result = min_speed;
 	if( size() == 0 ) result = 0;
 	else {
-		for(int i=0; i < size(); i++) {
+		for(size_t i=0; i < size(); i++) {
 			if(x <= index[i]) {
 				result = value[i];
 				break;
@@ -201,7 +200,7 @@ void Lookup::test_print() {
 	printf("id: %d\n", id);
 	printf("Lables: %s %s\n", label_x.c_str(), label_y.c_str());
 	printf("Units : %s %s\n", unit_x.c_str(), unit_y.c_str());
-	for(int i=0; i < Fsize; i++) {
+	for(size_t i=0; i < Fsize; i++) {
 		printf("%f\t%f\n", index[i], value[i]);
 	}
 }
