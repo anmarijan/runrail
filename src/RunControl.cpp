@@ -251,14 +251,16 @@ int RunControl::run1(const char* fname) {
         return (-1);
     }
     printf("[1] Prepare calculation.\n");
-    train->prepare_run();
+    if (train->prepare_run() != 0) {
+        printf("Train length > line length\n");
+        return(-1);
+    }
     int counter = 0;
     int information = 0;
     printf("[2] Start Calculation.\n");
     fprintf(fp, "status\ttime\tdistance\tspeed\taccel\tforce\tpower\n");
     train->run_print(fp);
     while(true) {
-         //printf("[%5d]\n", counter);
         int result = train->main_run();
 		if( result == RunCode::LessPower ) {
             errmsg = "Too low power.";

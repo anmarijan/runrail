@@ -8,8 +8,10 @@
 #include <algorithm> // std::min
 #include "common.h"
 #include "train.h"
+#include "RailLine.h"
 ////////////////////////////////////////////////////////////////////////////////
 double Train::dt = 1.0/16.0;
+const int RunCode::Error = -100;
 const int RunCode::LessPower   = -1;
 const int RunCode::InSegment   = 0;
 const int RunCode::NextSegment = 1;
@@ -66,9 +68,6 @@ double SpeedTraction::traction(double sp) {
 // If the maximum speed of the next segment is lower than that of the present
 // segment, this calculates the maximum allowed speed at the begining of the
 // current segment.
-// Presently, it does not consider the situation when the segment length of
-// a station is shorter thant the train length.
-// The maximum speed at stations is always zero.
 // [Input]
 //    dec deceleration (m/s^2)
 //    train_length  the length of the train (m)
@@ -90,8 +89,12 @@ int setsegspeed(SegmentList& segs, double dec, double train_length, double margi
         double d = 0.5*sp1*sp1/dec;
         d2 = (*it).length/2 + train_length/2;
         if( d > d2 ) {
+            /*
             sp1 = 0.0;
             (*it).max_speed = 0.0;
+            */
+            sp1 = std::sqrt(2 * dec * d2);
+            (*it).max_speed = sp1;
         } else d2 = 0.0;
     }
     double sp2 = sp1;
@@ -113,8 +116,12 @@ int setsegspeed(SegmentList& segs, double dec, double train_length, double margi
             double d = 0.5*sp1*sp1/dec;
             d2 = (*it).length/2 + train_length/2;
             if( d > d2 ) {
+                /*
                 sp1 = 0.0;
                 (*it).max_speed = 0.0;
+                */
+                sp1 = std::sqrt(2 * dec * d2);
+                (*it).max_speed = sp1;
             } else d2 = 0.0;
         }
         sp2 = sp1;
@@ -163,6 +170,7 @@ void Train::init(const SegmentList& segs) {
 bool Train::set_line(const std::shared_ptr<RailLine> r) {
     if( r ) {
         line = r;
+        /*
         SegmentList::reverse_iterator it = line->segs.rbegin();
         double d = it->distance;
         ++it;
@@ -172,6 +180,7 @@ bool Train::set_line(const std::shared_ptr<RailLine> r) {
             d = it->distance;
             ++it;
         }
+        */
         seg_it = line->segs.begin();
     } else line.reset();
     return true;
@@ -226,9 +235,16 @@ void Train::set_motor(std::shared_ptr<Motor> pt) {
 //-----------------------------------------------------------------------------
 double Train::get_regist(double v, double gradient, double radius) const {
     double Rf, Rg, Rc;
-    Rf = get_rolling_resist(v);  // (N)
+    // Start resistance
     if ( v <  start_resist_sp ) {
-        Rf += (start_resist_sp-v)/start_resist_sp; // Start resistance
+        double res_start = start_resist * weight;  // (N/t) x t
+        double res_end = get_rolling_resist(start_resist_sp);
+        if (res_start > res_end)
+            Rf = res_start - ((res_start - res_end) / start_resist_sp) * v;
+        else Rf = get_rolling_resist(v);
+    }
+    else {
+        Rf = get_rolling_resist(v);  // (N)
     }
     // Gradient resistance (gradient in percent)
     double gr0 = gradient/100;
@@ -398,9 +414,11 @@ void Train::step(double gradient, double radius,
  // Initilaiez the internal variables before main_run
  // status is acceleration
  //-----------------------------------------------------------------------------
-void Train::prepare_run() {
+int Train::prepare_run() {
     seg_it = line->segs.begin();
     distance = seg_it->length/2 + length/2;
+    while (seg_it != line->segs.end() && distance > seg_it->length) ++seg_it;
+    if (seg_it == line->segs.end()) return (-1);
     total_time = 0.0;
     acc_tm = 0.0;
     speed = 0.0;
@@ -418,12 +436,16 @@ for(const auto& item: line->segs) {
     printf("SP=%g MAX=%g\n", item.speed, item.max_speed);
 }
 */
+    return(0);
 }
 //-----------------------------------------------------------------------------
 // Get the maximum speed bitween the head and the tail of this train
 // x1: location of the tail
 // x2: location fo the head
 // return is in m/s
+// Note: max_speed is the max speed at the beginning of the segment.
+// If the segment is a station segment, the max speed of arriving is max_speed
+// but that of departing is not the same
 //-----------------------------------------------------------------------------
 double Train::get_min_speed(double x1, double x2) const {
 
@@ -435,17 +457,23 @@ double Train::get_min_speed(double x1, double x2) const {
     if ((pre->head_only == false) ||
         (x1 >= pre->distance && x1 < pre->distance + pre->length) ||
         (x2 > pre->distance && x2 <= pre->distance + pre->length)) {
-        result = pre->max_speed;
+        if (pre->type == SegmentType::Station) result = pre->speed; // station departure max
+        else result = pre->max_speed;
     }
     for (auto it = std::next(pre); it != segs.end(); ++it) {
         if (x2 < it->distance) {
             if (pre->head_only == false)
-                result = std::min(pre->max_speed, result);
-            break;
+            {
+                if (pre->type == SegmentType::Station) result = std::min(pre->speed, result);
+                else result = std::min(pre->max_speed, result);
+                break;
+            }
         }
         if (x1 < it->distance) {
-            if (pre->head_only == false)
-                result = std::min(pre->max_speed, result);
+            if (pre->head_only == false) {
+                if (pre->type == SegmentType::Station) result = std::min(pre->speed, result);
+                else result = std::min(pre->max_speed, result);
+            }
         }
         pre = it;
     }
@@ -473,7 +501,8 @@ int Train::update() {
     double limspeed = std::min((*seg_it).max_speed, max_speed) / 3.6;  //m/s
     SegmentList::const_iterator next_it = std::next(seg_it);
     bool bLastSeg = (next_it == line->segs.end()) ? true : false;
-    double next_dist = start_dist + (*seg_it).length;  //distance of the next segment
+    double next_dist = start_dist + (*seg_it).length;  // distance of the next segment
+                                                       // the same as: next_dist = (*next_it).distance;
     // next_max_speed (m/s)
     double next_max_speed = bLastSeg ? 0 : std::min((*next_it).max_speed, max_speed) / 3.6 ;
     if (next_max_speed < 0) next_max_speed = 0;
@@ -493,6 +522,7 @@ int Train::update() {
     if (entered == false) {
         // Calculate the minmum speed limit between the head and tail of the train
         double x = get_min_speed(distance - length, distance);
+        if (x <= 0) return RunCode::Error;
         if (distance - length < start_dist) {
             // if the speed limit is larger than that of the head, it is entered.
             if (x >= limspeed) {
@@ -529,11 +559,17 @@ int Train::update() {
         // train length is ignored
         if(status == TrainStatus::Traction) {
             step(gradient, radius, &v, &x, &a, false);
+            if (a <= 0) {
+                fprintf(stderr, "X=%g V=%g a=%g g=%g r=%g\n", x, v, a, gradient, radius);
+                return RunCode::LessPower;
+            }
             if (v > limspeed) status = TrainStatus::Coasting;
         }
         if(status == TrainStatus::Coasting) {
             step(gradient,radius, &v,&x,&a, true);
-            if (v > std::sqrt(next_max_speed * next_max_speed + 2 * dec * (next_dist - x))) {
+            if (x >= next_dist ) {
+                if(v > next_max_speed) status = TrainStatus::Breaking;
+            } else if (v > std::sqrt(next_max_speed * next_max_speed + 2 * dec * (next_dist - x))) {
                 status = TrainStatus::Breaking;
             }
             // if gradient is negative, speed can increase.
@@ -609,10 +645,29 @@ int Train::update() {
         force = 0.0;
         if ( speed <= 0.0 ) {
             status = TrainStatus::Traction;
-        } else {
+        }
+        else if (next_max_speed > speed) {
+            // Breaking because of slope
+            assert(next_dist > distance);
+            accel = 0.5 * (next_max_speed * next_max_speed - speed * speed) / (next_dist - distance);
+            assert(accel > 0);
+            force = calc_need_force(speed, accel);
+            power = force * speed / 1000; // J/s -> kW
+            double d_tm = (next_max_speed - speed) / accel;
+            if (d_tm < dt) {
+                accel = (next_max_speed - speed) / dt;
+            }
+            double v = speed + accel * dt;
+            double d = speed * dt + 0.5 * accel * dt * dt;
+            speed = v;
+            distance = d;
+        } 
+        else {
             // Assume the deceleration is constant in case of breaking
             // accel = dec * (-1);
+            assert(next_dist > distance);
             accel = 0.5 * (next_max_speed * next_max_speed - speed * speed) / (next_dist - distance);
+            assert(accel <= 0);
             force = calc_need_force(speed, accel);
             power = force * speed / 1000; // J/s -> kW
             double v = speed + accel * dt;
@@ -631,17 +686,6 @@ int Train::update() {
             }
             distance = d;
             speed = v;
-            /*
-            // In case that the train overrun after breaking
-            if ( d > next_dist) {
-                speed = next_max_speed;  // the speed must be the same as that of the nex segment
-                distance = next_dist;    // forcibly return the previous one
-                // Continue breaking
-            } else {
-                distance = d;
-                speed = v;
-            }
-            */
         }
 	}
 	// Recored the traction time
@@ -707,9 +751,12 @@ int Train::main_run() {
 	}
 	// Run the train
 	result = update();
-
-    if( result == RunCode::NextSegment ) {// if the train arrived the next segment
-        ++seg_it;
+    if (result == RunCode::Error) {
+        printf("Error\n");
+        exit(1);
+    } else if( result == RunCode::NextSegment ) {// if the train arrived the next segment
+        // The length of Point is 0. The head of train can be in the next next segment. 
+        while (seg_it != line->segs.end() && distance > seg_it->distance+seg_it->length) ++seg_it;
         if(  seg_it == line->segs.end() ) return RunCode::EndOfLine;
 	} else if (result == RunCode::NextStation) {
         if (seg_it == line->segs.end() ) return RunCode::EndOfLine;
@@ -722,7 +769,7 @@ int Train::main_run() {
             if( next_it == line->segs.end() ) return RunCode::EndOfLine;
         }
         else if( seg_it->type != SegmentType::Station) {
-            fprintf(stderr, "[BUG] Train stops in the non-station segment.\n");
+            printf("[BUG] Train stops in the non-station segment.\n");
             exit(1);
         }
         // for debug(2)

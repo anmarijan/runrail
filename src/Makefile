@@ -5,7 +5,7 @@ CXX = g++
 CXXFLAGS = -std=c++1y -Wall -DGITVERSION=\"$(GIT_HASH)\"
 LDFLAGS = -static -lboost_program_options-mt
 .cpp.o:
-	$(CXX) $(CFLAGS) -c $< -o $@
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 $(PROGRAM) : $(OBJS)
 	$(CXX) $(OBJS) $(LDFLAGS) -o $(PROGRAM)

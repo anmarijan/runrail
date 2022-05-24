@@ -26,11 +26,17 @@ Segment::Segment() {
 	head_only = true;
 }
 //-----------------------------------------------------------------------------
+// Print the segment data
+//-----------------------------------------------------------------------------
+void Segment::print() {
+	printf("%d %d %g %g %g %g %g %g\n", id, type, distance, length, speed, gradient, radius, max_speed);
+}
+//-----------------------------------------------------------------------------
  // Read the Segment file
  // File format
  // id distance(m) type maximum_speed(km/h) gradient(%) curve(m)
  //----------------------------------------------------------------------------
-int loadsegdata(const char* fname, std::vector<Segment>* segs) {
+int loadsegdata(const char* fname, std::vector<Segment>& segs) {
     std::ifstream fi(fname);
     if (!fi) return (-1);
     std::string str;
@@ -51,7 +57,11 @@ int loadsegdata(const char* fname, std::vector<Segment>* segs) {
         if (!iss) {
             return (-2);
         }
-        Segment seg;
+		if (length < 0) {
+			printf("Data error at line %d\n", count + 1);
+			return (-3);
+		}
+		Segment seg;
         seg.id = id;
         seg.type = type;
         seg.distance = distance;
@@ -63,17 +73,23 @@ int loadsegdata(const char* fname, std::vector<Segment>* segs) {
 		// Todo: make a flag to identify the section 
 		if( gradient != 0 || radius != 0) seg.head_only = false;
 		else seg.head_only = true;
-        segs->push_back(seg);
+        segs.push_back(seg);
         count++;
     }
-    std::vector<Segment>::reverse_iterator it = segs->rbegin() ;
+    std::vector<Segment>::reverse_iterator it = segs.rbegin() ;
     double d = (*it).distance;
 	++it;
-    while( it != segs->rend() ) {
+    while( it != segs.rend() ) {
         (*it).length = d - (*it).distance;
-		if( (*it).length <= 0 ) {
-			printf("%g %g %g\n", d , it->distance, it->length);
+		//if( (*it).length <= 0 ) {
+		if ((*it).length < 0) {
+			(*it).print();
 			return (-3);
+		}
+		if ((*it).length > 0 && (*it).type == SegmentType::Point ) {
+			printf("Length must be 0 if type is %d\n", SegmentType::Point);
+			(*it).print();
+			return (-4);
 		}
         d = (*it).distance;
         ++it;
@@ -85,7 +101,7 @@ int loadsegdata(const char* fname, std::vector<Segment>* segs) {
 //------------------------------------------------------------------------------
 int RailLine::read(const char* fname) {
 	segs.clear();
-	return loadsegdata(fname, &segs);
+	return loadsegdata(fname, segs);
 }
 //------------------------------------------------------------------------------
 ///  RailLine: Constructor
@@ -132,7 +148,7 @@ void RailLine::setSegment(int i, const Segment& s) {
 ///  test print
 //------------------------------------------------------------------------------
 void RailLine::test_print(){
-	for (auto x: segs ) {
+	for (const auto& x: segs ) {
 		printf("%d\t%d\t%.0f\t%.0f\t%.0f\t%.0f\n",
 			x.id, x.type, x.distance, x.speed, x.gradient, x.radius);
 	}
@@ -183,7 +199,7 @@ void RailLine::reset()
 double RailLine::length() const
 {
 	double result = 0.0;
-	for ( auto x: segs ) {
+	for (const auto& x: segs ) {
 		result += x.length;
 	}
 	return result;

@@ -15,6 +15,7 @@ using SegmentList = std::vector<Segment>;
 enum class TrainStatus {Traction, Coasting, Breaking, Stop, Constant};
 //---------------------------------------------------------------------------
 struct RunCode {
+    static const int Error;
 	static const int LessPower;
 	static const int InSegment;     // In a segment
 	static const int NextSegment;   // Arrived at the next segment
@@ -89,7 +90,6 @@ public:
     Train(const SegmentList& segs);
     void init();
     void init(const SegmentList& segs);
-    //int run(double target_dist);
     double get_speed() const { return speed; };
     double get_dist() const { return distance; };
     TrainStatus get_status() const { return status;};
@@ -110,7 +110,7 @@ public:
 public:
     int solve(const SegmentList& segs, double x0, double v0, double v_max, VarSet* var) const;
 public:
-    void prepare_run();
+    int prepare_run();
     int main_run();
     void run_print(FILE* fp);
 private:

@@ -34,13 +34,12 @@ public:
     double max_speed;
 public:
     Segment();
-//    segment(double d, double s):
-//        distance(d), speed(s){};
+	void print();
 };
 //-----------------------------------------------------------------------------
 // Function to read segement data
 //-----------------------------------------------------------------------------
-int loadsegdata(const char* fname, std::vector<Segment>* segs);
+int loadsegdata(const char* fname, std::vector<Segment>& segs);
 //-----------------------------------------------------------------------------
 // Railway line class
 //-----------------------------------------------------------------------------

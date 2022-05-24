@@ -1,4 +1,4 @@
-#define VERSION "0.2.0"
+#define VERSION "0.2.1"
 #ifndef GITVERSION
 	#define GITVERSION "a"
 #endif

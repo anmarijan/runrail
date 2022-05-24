@@ -90,7 +90,7 @@ SVGConvert::SVGConvert() {
 //---------------------------------------------------------------------------------------
 bool SVGConvert::read_rail(const char* fname) {
     std::vector<Segment> segs;
-    int c = loadsegdata(fname, &segs);
+    int c = loadsegdata(fname, segs);
     if ( c < 0 ) return false;
     track.clear();
     int start = 0;
